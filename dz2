@@ -1,74 +1,112 @@
-import numpy as np
-import os
-
-
-d = os.path.dirname(os.path.abspath(__file__))
-os.chdir(d)
-f = np.load('frames.npy')
-o = np.load('offsets.npy')
-
-
-# 1
-m1 = (f == f[0:1]).all(axis=0)
-t1a = int(m1.sum())
-zm = (f >= 1000)
-fr = zm.mean(axis=(1, 2))
-bi = np.where(fr > 0.2)
-t1b = ",".join(map(str, sorted(bi)))
-print(t1a)
-print(t1b)
-
-
-# 2
-cf = f.copy()
-cf[:, m1] = np.nan
-cf[bi, :, :] = np.nan
-cf[zm] = np.nan
-cf = cf - o[:, None, None]
-vc = np.isfinite(cf).sum(axis=0)
-np.seterr(all='ignore')
-cm = np.nanmedian(cf, axis=0)
-cm[vc < 5] = np.nan
-t2a = int(np.isnan(cm).sum())
-t2b = round(float(np.nanmax(cm)), 1)
-print(t2a)
-print(t2b)
-
-
-# 3
-s = np.full_like(cm, np.nan)
-hc = cm[1:-1, 1:-1]
-hu = cm[:-2, 1:-1]
-hd = cm[2:, 1:-1]
-hl = cm[1:-1, :-2]
-hr = cm[1:-1, 2:]
-du = np.abs(hc - hu)
-dd = np.abs(hc - hd)
-dl = np.abs(hc - hl)
-dr = np.abs(hc - hr)
-md = np.fmax(np.fmax(du, dd), np.fmax(dl, dr))
-s[1:-1, 1:-1] = md
-t3a = round(float(np.nanmax(s)), 1)
-print(t3a)
-
-
-# 4
-sc = np.isfinite(cm) & (cm < 100) & np.isfinite(s) & (s <= 2)
-sw = (
-    sc[:-2, :-2] & sc[:-2, 1:-1] & sc[:-2, 2:] &
-    sc[1:-1, :-2] & sc[1:-1, 1:-1] & sc[1:-1, 2:] &
-    sc[2:, :-2] & sc[2:, 1:-1] & sc[2:, 2:]
-)
-t4a = int(sw.sum())
-r, c = np.where(sw)
-mr = np.inf
-bc = None
-for ri, ci in zip(r, c):
-    wh = cm[ri:ri+3, ci:ci+3]
-    wr = np.nanmax(wh) - np.nanmin(wh)
-    if wr < mr:
-        mr = wr
-        bc = (ri + 1, ci + 1)
-t4b = f"{bc[0]},{bc[1]}"
-print(t4a)
-print(t4b)
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import os\n",
+    "\n",
+    "d = os.path.dirname(os.path.abspath(__file__))\n",
+    "os.chdir(d)\n",
+    "f = np.load('frames.npy')\n",
+    "o = np.load('offsets.npy')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 1\n",
+    "m1 = (f == f[0:1]).all(axis=0)\n",
+    "t1a = int(m1.sum())\n",
+    "zm = (f >= 1000)\n",
+    "fr = zm.mean(axis=(1, 2))\n",
+    "bi = np.where(fr > 0.2)\n",
+    "t1b = \",\".join(map(str, sorted(bi)))\n",
+    "print(t1a)\n",
+    "print(t1b)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 2\n",
+    "cf = f.copy()\n",
+    "cf[:, m1] = np.nan\n",
+    "cf[bi, :, :] = np.nan\n",
+    "cf[zm] = np.nan\n",
+    "cf = cf - o[:, None, None]\n",
+    "vc = np.isfinite(cf).sum(axis=0)\n",
+    "np.seterr(all='ignore')\n",
+    "cm = np.nanmedian(cf, axis=0)\n",
+    "cm[vc < 5] = np.nan\n",
+    "t2a = int(np.isnan(cm).sum())\n",
+    "t2b = round(float(np.nanmax(cm)), 1)\n",
+    "print(t2a)\n",
+    "print(t2b)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 3\n",
+    "s = np.full_like(cm, np.nan)\n",
+    "hc = cm[1:-1, 1:-1]\n",
+    "hu = cm[:-2, 1:-1]\n",
+    "hd = cm[2:, 1:-1]\n",
+    "hl = cm[1:-1, :-2]\n",
+    "hr = cm[1:-1, 2:]\n",
+    "du = np.abs(hc - hu)\n",
+    "dd = np.abs(hc - hd)\n",
+    "dl = np.abs(hc - hl)\n",
+    "dr = np.abs(hc - hr)\n",
+    "md = np.fmax(np.fmax(du, dd), np.fmax(dl, dr))\n",
+    "s[1:-1, 1:-1] = md\n",
+    "t3a = round(float(np.nanmax(s)), 1)\n",
+    "print(t3a)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 4\n",
+    "sc = np.isfinite(cm) & (cm < 100) & np.isfinite(s) & (s <= 2)\n",
+    "sw = (\n",
+    "    sc[:-2, :-2] & sc[:-2, 1:-1] & sc[:-2, 2:] &\n",
+    "    sc[1:-1, :-2] & sc[1:-1, 1:-1] & sc[1:-1, 2:] &\n",
+    "    sc[2:, :-2] & sc[2:, 1:-1] & sc[2:, 2:]\n",
+    ")\n",
+    "t4a = int(sw.sum())\n",
+    "r, c = np.where(sw)\n",
+    "mr = np.inf\n",
+    "bc = None\n",
+    "for ri, ci in zip(r, c):\n",
+    "    wh = cm[ri:ri+3, ci:ci+3]\n",
+    "    wr = np.nanmax(wh) - np.nanmin(wh)\n",
+    "    if wr < mr:\n",
+    "        mr = wr\n",
+    "        bc = (ri + 1, ci + 1)\n",
+    "t4b = f\"{bc[0]},{bc[1]}\"\n",
+    "print(t4a)\n",
+    "print(t4b)"
+   ]
+  }
+ ],
+ "metadata": {},
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
