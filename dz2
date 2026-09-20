@@ -1,0 +1,74 @@
+import numpy as np
+import os
+
+
+d = os.path.dirname(os.path.abspath(__file__))
+os.chdir(d)
+f = np.load('frames.npy')
+o = np.load('offsets.npy')
+
+
+# 1
+m1 = (f == f[0:1]).all(axis=0)
+t1a = int(m1.sum())
+zm = (f >= 1000)
+fr = zm.mean(axis=(1, 2))
+bi = np.where(fr > 0.2)
+t1b = ",".join(map(str, sorted(bi)))
+print(t1a)
+print(t1b)
+
+
+# 2
+cf = f.copy()
+cf[:, m1] = np.nan
+cf[bi, :, :] = np.nan
+cf[zm] = np.nan
+cf = cf - o[:, None, None]
+vc = np.isfinite(cf).sum(axis=0)
+np.seterr(all='ignore')
+cm = np.nanmedian(cf, axis=0)
+cm[vc < 5] = np.nan
+t2a = int(np.isnan(cm).sum())
+t2b = round(float(np.nanmax(cm)), 1)
+print(t2a)
+print(t2b)
+
+
+# 3
+s = np.full_like(cm, np.nan)
+hc = cm[1:-1, 1:-1]
+hu = cm[:-2, 1:-1]
+hd = cm[2:, 1:-1]
+hl = cm[1:-1, :-2]
+hr = cm[1:-1, 2:]
+du = np.abs(hc - hu)
+dd = np.abs(hc - hd)
+dl = np.abs(hc - hl)
+dr = np.abs(hc - hr)
+md = np.fmax(np.fmax(du, dd), np.fmax(dl, dr))
+s[1:-1, 1:-1] = md
+t3a = round(float(np.nanmax(s)), 1)
+print(t3a)
+
+
+# 4
+sc = np.isfinite(cm) & (cm < 100) & np.isfinite(s) & (s <= 2)
+sw = (
+    sc[:-2, :-2] & sc[:-2, 1:-1] & sc[:-2, 2:] &
+    sc[1:-1, :-2] & sc[1:-1, 1:-1] & sc[1:-1, 2:] &
+    sc[2:, :-2] & sc[2:, 1:-1] & sc[2:, 2:]
+)
+t4a = int(sw.sum())
+r, c = np.where(sw)
+mr = np.inf
+bc = None
+for ri, ci in zip(r, c):
+    wh = cm[ri:ri+3, ci:ci+3]
+    wr = np.nanmax(wh) - np.nanmin(wh)
+    if wr < mr:
+        mr = wr
+        bc = (ri + 1, ci + 1)
+t4b = f"{bc[0]},{bc[1]}"
+print(t4a)
+print(t4b)
